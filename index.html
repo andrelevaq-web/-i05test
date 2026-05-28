@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抽卡故事挑戰</title>
+
+<style>
+
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial, sans-serif;
+}
+
+header{
+    text-align:center;
+    padding:16px;
+    font-size:24px;
+    font-weight:bold;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:10px;
+}
+
+/* 上方按鈕 */
+.top-buttons{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.top-buttons button{
+    margin:5px;
+}
+
+/* 卡片排列 */
+.card-area{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:16px;
+}
+
+/* ⭐ 整組卡片 */
+.card-wrapper{
+    width:220px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    transition:0.3s;
+}
+
+/* 卡片 */
+.card{
+    width:100%;
+    aspect-ratio:16/9;
+    border-radius:12px;
+    overflow:hidden;
+    background:#2a2a2a;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    border:1px solid #444;
+}
+
+/* 背面 */
+.card.back{
+    font-size:14px;
+}
+
+/* 圖片 */
+.card img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+/* 下方控制列 */
+.card-controls{
+    display:flex;
+    gap:6px;
+    margin-top:8px;
+}
+
+/* 按鈕 */
+button{
+    border:none;
+    border-radius:8px;
+    padding:8px 10px;
+    cursor:pointer;
+    background:#333;
+    color:white;
+}
+
+button:hover{
+    background:#555;
+}
+
+/* 文字框 */
+textarea{
+    width:100%;
+    height:140px;
+    margin-top:25px;
+    border-radius:10px;
+    padding:12px;
+    font-size:16px;
+    box-sizing:border-box;
+}
+
+/* 圖庫 */
+.modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.94);
+    overflow:auto;
+}
+
+.library-header{
+    position:sticky;
+    top:0;
+    background:#111;
+    padding:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    z-index:10;
+}
+
+.modal-content{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+    padding:10px;
+}
+
+.modal img{
+    width:100%;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+/* 手機 */
+@media (max-width:700px){
+
+    .card-wrapper{
+        width:48%;
+    }
+
+    .modal-content{
+        grid-template-columns:repeat(3,1fr);
+    }
+
+    button{
+        font-size:12px;
+        padding:7px;
+    }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<header>🎴 抽卡故事挑戰</header>
+
+<div class="container">
+
+    <div class="top-buttons">
+        <button onclick="draw()">🎲 重新抽卡</button>
+        <button onclick="openLibrary()">📚 全部圖庫</button>
+    </div>
+
+    <div class="card-area" id="cardArea"></div>
+
+    <textarea placeholder="請在這裡輸入故事內容..."></textarea>
+
+</div>
+
+<!-- 圖庫 -->
+<div class="modal" id="modal">
+
+    <div class="library-header">
+        <button onclick="closeLibrary()">⬅ 返回主頁</button>
+        <div>點選圖片加入卡片</div>
+    </div>
+
+    <div class="modal-content" id="library"></div>
+
+</div>
+
+<script>
+
+const total = 36;
+
+/* 卡片資料 */
+let cards = [];
+
+/* 抽卡 */
+function draw(){
+
+    cards = [];
+
+    const used = new Set();
+
+    while(cards.length < 5){
+
+        let n = Math.floor(Math.random() * total) + 1;
+
+        if(!used.has(n)){
+
+            used.add(n);
+
+            cards.push({
+                number:n,
+                flipped:false
+            });
+
+        }
+    }
+
+    render();
+}
+
+/* 渲染 */
+function render(){
+
+    const area = document.getElementById("cardArea");
+
+    area.innerHTML = "";
+
+    cards.forEach((cardData,index)=>{
+
+        const wrapper = document.createElement("div");
+
+        wrapper.className = "card-wrapper";
+
+        /* 已翻開 */
+        let cardHTML = "";
+
+        if(cardData.flipped){
+
+            cardHTML = `
+            <div class="card">
+                <img src="images/${String(cardData.number).padStart(2,'0')}.jpg">
+            </div>
+            `;
+
+        }else{
+
+            cardHTML = `
+            <div class="card back">
+                點擊翻開
+            </div>
+            `;
+        }
+
+        wrapper.innerHTML = `
+
+            ${cardHTML}
+
+            <div class="card-controls">
+
+                <button onclick="moveLeft(${index})">⬅</button>
+
+                <button onclick="replaceCard(${index})">🔄</button>
+
+                <button onclick="moveRight(${index})">➡</button>
+
+            </div>
+
+        `;
+
+        /* 點擊翻牌 */
+        const card = wrapper.querySelector(".card");
+
+        card.addEventListener("click",()=>{
+
+            if(!cards[index].flipped){
+
+                cards[index].flipped = true;
+
+                render();
+
+            }
+
+        });
+
+        area.appendChild(wrapper);
+
+    });
+
+}
+
+/* 左移 */
+function moveLeft(index){
+
+    if(index === 0) return;
+
+    [cards[index-1], cards[index]] =
+    [cards[index], cards[index-1]];
+
+    render();
+}
+
+/* 右移 */
+function moveRight(index){
+
+    if(index === cards.length - 1) return;
+
+    [cards[index+1], cards[index]] =
+    [cards[index], cards[index+1]];
+
+    render();
+}
+
+/* 更換 */
+function replaceCard(index){
+
+    let n;
+
+    do{
+
+        n = Math.floor(Math.random() * total) + 1;
+
+    }while(cards.some(c=>c.number===n));
+
+    cards[index] = {
+        number:n,
+        flipped:false
+    };
+
+    render();
+}
+
+/* 開啟圖庫 */
+function openLibrary(){
+
+    const modal = document.getElementById("modal");
+
+    const library = document.getElementById("library");
+
+    library.innerHTML = "";
+
+    for(let i=1;i<=total;i++){
+
+        const img = document.createElement("img");
+
+        img.src = `images/${String(i).padStart(2,'0')}.jpg`;
+
+        img.onclick = ()=>{
+
+            cards.push({
+                number:i,
+                flipped:true
+            });
+
+            if(cards.length > 5){
+
+                cards.shift();
+
+            }
+
+            render();
+
+        };
+
+        library.appendChild(img);
+
+    }
+
+    modal.style.display = "block";
+}
+
+/* 關閉圖庫 */
+function closeLibrary(){
+
+    document.getElementById("modal").style.display = "none";
+
+}
+
+/* 啟動 */
+draw();
+
+</script>
+
+</body>
+</html>
